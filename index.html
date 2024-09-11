@@ -3,73 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Transfer with WebRTC</title>
+    <title>AI Chatbot</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
+            margin: 20px;
         }
-
-        #send-section, #receive-section {
-            border: 1px solid #ddd;
+        .chat-container {
+            width: 50%;
+            margin: 0 auto;
+        }
+        .chat-box {
+            border: 1px solid #ccc;
             padding: 20px;
-            margin: 10px;
-            display: inline-block;
-            width: 40%;
-            vertical-align: top;
+            height: 400px;
+            overflow-y: auto;
         }
-
-        input[type="file"] {
-            display: block;
-            margin: 20px auto;
+        .chat-box p {
+            margin: 10px 0;
         }
-
-        button {
-            padding: 10px 20px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            cursor: pointer;
+        .user-message {
+            text-align: right;
+            font-weight: bold;
         }
-
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
+        .bot-message {
+            text-align: left;
+            color: green;
         }
-
-        #progress {
-            width: 100%;
-            background-color: #f3f3f3;
-            margin: 10px auto;
-            display: block;
+        .input-box {
+            margin-top: 20px;
         }
-
-        #progress div {
-            width: 0;
-            height: 20px;
-            background-color: #28a745;
+        .input-box input {
+            width: 80%;
+            padding: 10px;
+        }
+        .input-box button {
+            padding: 10px;
         }
     </style>
 </head>
 <body>
-
-    <h1>Peer-to-Peer File Transfer</h1>
-
-    <div id="send-section">
-        <h2>Send File</h2>
-        <input type="file" id="fileInput">
-        <button id="sendFileBtn" disabled>Send File</button>
-        <div id="sendStatus"></div>
+    <div class="chat-container">
+        <h2>AI Chatbot</h2>
+        <div class="chat-box" id="chat-box">
+            <!-- Chat will appear here -->
+        </div>
+        <div class="input-box">
+            <input type="text" id="user-input" placeholder="Type your message here...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
     </div>
 
-    <div id="receive-section">
-        <h2>Receive File</h2>
-        <button id="startReceiveBtn">Start Receiving</button>
-        <div id="receiveStatus"></div>
-    </div>
+    <script>
+        // Replace with your Hugging Face API key and model
+        const apiKey = 'your-hugging-face-api-key'; // Enter your Hugging Face API key here
+        const apiUrl = 'https://api-inference.huggingface.co/models/gpt2'; // GPT-2 model
 
-    <script src="file-transfer.js"></script>
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input').value;
+            if (!userInput) return;
 
+            // Display user message in chat
+            displayMessage(userInput, 'user-message');
+
+            // Clear input field
+            document.getElementById('user-input').value = '';
+
+            // Call Hugging Face API
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    inputs: userInput
+                })
+            });
+
+            const result = await response.json();
+            if (result.hasOwnProperty('error')) {
+                displayMessage("Error: Unable to process request.", 'bot-message');
+                return;
+            }
+
+            // Get the AI's response
+            const botResponse = result[0]?.generated_text || "Sorry, I didn't understand that.";
+            displayMessage(botResponse, 'bot-message');
+        }
+
+        function displayMessage(message, className) {
+            const chatBox = document.getElementById('chat-box');
+            const newMessage = document.createElement('p');
+            newMessage.className = className;
+            newMessage.textContent = message;
+            chatBox.appendChild(newMessage);
+            chatBox.scrollTop = chatBox.scrollHeight; // Scroll to bottom
+        }
+    </script>
 </body>
 </html>
