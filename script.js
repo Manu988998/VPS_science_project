@@ -1,50 +1,56 @@
-// Variables for peer connection and data channel
+// STUN server configuration (Google public STUN server)
+const configuration = {
+    iceServers: [
+        {
+            urls: 'stun:stun.l.google.com:19302'
+        }
+    ]
+};
+
 let peerConnection;
 let dataChannel;
+let fileInput = document.getElementById('fileInput');
+let sendFileBtn = document.getElementById('sendFileBtn');
+let startReceiveBtn = document.getElementById('startReceiveBtn');
+let sendStatus = document.getElementById('sendStatus');
+let receiveStatus = document.getElementById('receiveStatus');
 
-// File transfer elements
-const fileInput = document.getElementById('fileInput');
-const sendFileBtn = document.getElementById('sendFileBtn');
-const startReceiveBtn = document.getElementById('startReceiveBtn');
-const sendStatus = document.getElementById('sendStatus');
-const receiveStatus = document.getElementById('receiveStatus');
-
-// When a file is selected, enable the Send File button
+// Handle file selection
 fileInput.addEventListener('change', () => {
     if (fileInput.files.length > 0) {
         sendFileBtn.disabled = false;
     }
 });
 
-// Create a peer connection and data channel for sending files
+// Function to create a peer connection and send files
 sendFileBtn.addEventListener('click', () => {
     const file = fileInput.files[0];
     if (!file) return;
 
-    peerConnection = new RTCPeerConnection();
+    peerConnection = new RTCPeerConnection(configuration);
     dataChannel = peerConnection.createDataChannel('fileTransfer');
 
-    // Handle data channel events
+    // Send file when data channel opens
     dataChannel.onopen = () => {
-        sendStatus.textContent = "Connection open, sending file...";
+        sendStatus.textContent = 'Connection open, sending file...';
         sendFile(file);
     };
 
+    // Handle ice candidates
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
-            // Share the candidate with the other peer manually
             console.log('Send this candidate to the receiver:', event.candidate);
         }
     };
 
-    // Create an offer and set it as the local description
+    // Create and send offer
     peerConnection.createOffer().then(offer => {
         peerConnection.setLocalDescription(offer);
         console.log('Send this offer to the receiver:', offer);
     });
 });
 
-// Handle file sending through chunks
+// Function to send file in chunks
 function sendFile(file) {
     const chunkSize = 16384;
     let offset = 0;
@@ -57,7 +63,7 @@ function sendFile(file) {
         if (offset < file.size) {
             sliceFile(file, offset);
         } else {
-            sendStatus.textContent = "File sent successfully!";
+            sendStatus.textContent = 'File sent successfully!';
             dataChannel.close();
         }
     };
@@ -70,11 +76,11 @@ function sendFile(file) {
     }
 }
 
-// Receiving part: create peer connection and wait for offer
+// Receiving part: Create peer connection and wait for the offer
 startReceiveBtn.addEventListener('click', () => {
-    peerConnection = new RTCPeerConnection();
+    peerConnection = new RTCPeerConnection(configuration);
 
-    // When a data channel is received, handle the incoming data
+    // Handle incoming data channel
     peerConnection.ondatachannel = event => {
         dataChannel = event.channel;
 
@@ -95,13 +101,14 @@ startReceiveBtn.addEventListener('click', () => {
         };
     };
 
+    // Handle ice candidates
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
             console.log('Send this candidate to the sender:', event.candidate);
         }
     };
 
-    // Set the remote description when the offer is received
+    // Set remote description when offer is received
     const offer = prompt('Paste the offer from the sender:');
     if (offer) {
         peerConnection.setRemoteDescription(JSON.parse(offer)).then(() => {
@@ -112,5 +119,4 @@ startReceiveBtn.addEventListener('click', () => {
         });
     }
 });
-
-
+            
